@@ -74,6 +74,16 @@ export default function PatientPage() {
                 )}
                 <li className="cursor-pointer text-gray-500">회복탄력성 검사 (추가 예정)</li>
             </ul>
+
+            {/* 목록보기 버튼 추가 */}
+            <div className="mt-4">
+                <button
+                    onClick={() => router.push('/dashboard')}
+                    className="bg-gray-500 text-white py-2 px-6 rounded-md hover:bg-gray-600"
+                >
+                    목록 보기
+                </button>
+            </div>
         </div>
     );
 }

@@ -3,45 +3,28 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { supabase } from '@/app/lib/supabase';
-import { Bar } from 'react-chartjs-2';
-import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
+import { Line } from 'react-chartjs-2';
+import {
+    Chart as ChartJS,
+    CategoryScale,
+    LinearScale,
+    LineElement,
+    PointElement,
+    Title,
+    Tooltip,
+    Legend,
+} from 'chart.js';
 
-// Chart.js registration
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
-
-// Enneagram data
-type EnneagramData = {
-    type: string;
-    integration: number;
-    disintegration: number;
-    wings: number[];
-};
-
-const enneagramData: Record<number, EnneagramData> = {
-    1: { type: '장', integration: 7, disintegration: 4, wings: [9, 2] },
-    2: { type: '가슴', integration: 4, disintegration: 8, wings: [1, 3] },
-    3: { type: '가슴', integration: 6, disintegration: 9, wings: [2, 4] },
-    4: { type: '가슴', integration: 1, disintegration: 2, wings: [3, 5] },
-    5: { type: '머리', integration: 8, disintegration: 7, wings: [4, 6] },
-    6: { type: '머리', integration: 9, disintegration: 3, wings: [5, 7] },
-    7: { type: '머리', integration: 5, disintegration: 1, wings: [6, 8] },
-    8: { type: '장', integration: 2, disintegration: 5, wings: [7, 9] },
-    9: { type: '장', integration: 3, disintegration: 6, wings: [8, 1] },
-};
+// Chart.js 등록
+ChartJS.register(CategoryScale, LinearScale, LineElement, PointElement, Title, Tooltip, Legend);
 
 export default function ResultsPage() {
     const router = useRouter();
     const { id: patientId } = useParams();
-    const [results, setResults] = useState<{
-        scores: Record<string, number>;
-        enneagramType: number;
-        type: string;
-        integration: number;
-        disintegration: number;
-        wingType: number;
-    } | null>(null); // Typing for results to handle nullable state
+    const [results, setResults] = useState<{ categoryScores: Record<string, number> } | null>(null);
     const [loading, setLoading] = useState(true);
 
+    // supabase에서 결과 데이터 불러오기
     useEffect(() => {
         const fetchResults = async () => {
             const { data, error } = await supabase
@@ -50,70 +33,121 @@ export default function ResultsPage() {
                 .eq('patient_id', patientId)
                 .maybeSingle();
 
-            if (error || !data) return;
+            if (error || !data) {
+                console.error('Error fetching data or no data found');
+                return;
+            }
 
             const answers = data.answers;
+            // 각 카테고리 점수를 누적 (카테고리: A, B, C, D, E, F, G, H, I)
             const scores: Record<string, number> = { A: 0, B: 0, C: 0, D: 0, E: 0, F: 0, G: 0, H: 0, I: 0 };
 
-            Object.keys(answers).forEach((key) => {
-                const category = key[0];
-                if (scores[category] !== undefined) {
-                    scores[category] += answers[key];
-                }
-            });
+            for (let i = 1; i <= 9; i++) {
+                scores.A += answers[`a${i}`] || 0;
+                scores.B += answers[`b${i}`] || 0;
+                scores.C += answers[`c${i}`] || 0;
+                scores.D += answers[`d${i}`] || 0;
+                scores.E += answers[`e${i}`] || 0;
+                scores.F += answers[`f${i}`] || 0;
+                scores.G += answers[`g${i}`] || 0;
+                scores.H += answers[`h${i}`] || 0;
+                scores.I += answers[`i${i}`] || 0;
+            }
 
-            const highestType = Object.entries(scores).sort((a, b) => b[1] - a[1])[0][0];
-            const enneagramType = highestType.charCodeAt(0) - 64; // A=1, B=2, ..., I=9
-            const { type, integration, disintegration, wings } = enneagramData[enneagramType];
-            const wingType = scores[wings[0]] > scores[wings[1]] ? wings[0] : wings[1];
-
-            setResults({ scores, enneagramType, type, integration, disintegration, wingType });
+            setResults({ categoryScores: scores });
             setLoading(false);
         };
 
         fetchResults();
     }, [patientId]);
 
-    if (loading) return <p>로딩 중...</p>;
-    if (!results) return <p>결과를 불러오는 데 실패했습니다.</p>;
+    if (loading) return <p className="text-center text-gray-600">로딩 중...</p>;
+    if (!results) return <p className="text-center text-red-500">결과를 불러오는 데 실패했습니다.</p>;
 
-    console.log(results, '???');
+    // 원하는 순서에 따른 매핑 설정 (F는 3번으로 가정)
+    const order = ['D', 'F', 'E', 'A', 'B', 'C', 'G', 'H', 'I'];
+    const labelMapping: Record<string, string> = {
+        D: '2',
+        F: '3',
+        E: '4',
+        A: '5',
+        B: '6',
+        C: '7',
+        G: '8',
+        H: '9',
+        I: '1',
+    };
+
+    const chartLabels = order.map((key) => labelMapping[key]);
+    const chartValues = order.map((key) => results.categoryScores[key]);
+
     const chartData = {
-        labels: Object.keys(results.scores),
+        labels: chartLabels, // ['2', '3', '4', '5', '6', '7', '8', '9', '1']
         datasets: [
             {
-                label: '응답 점수',
-                data: Object.values(results.scores),
-                backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                label: '점수',
+                data: chartValues,
+                backgroundColor: 'rgba(54, 162, 235, 0.2)',
                 borderColor: 'rgba(54, 162, 235, 1)',
-                borderWidth: 1,
+                borderWidth: 2,
+                fill: false,
+                tension: 0.4,
             },
         ],
     };
 
     return (
-        <div className="max-w-4xl mx-auto p-6 bg-white shadow-md rounded-lg">
-            <h2 className="text-3xl font-bold text-center mb-6">검사 결과</h2>
+        <div className="max-w-4xl mx-auto p-8 bg-white shadow-lg rounded-lg">
+            {/* 헤더 */}
+            <header className="text-center border-b pb-4 mb-6">
+                <h1 className="text-2xl font-bold text-gray-800">에니어그램 성격 유형 검사 결과</h1>
+                <p className="text-sm text-gray-500">환자 ID: {patientId}</p>
+            </header>
+
+            {/* 그래프 섹션 */}
             <div className="mb-6">
-                <Bar
+                <Line
                     data={chartData}
-                    options={{ responsive: true, plugins: { legend: { display: false } } }}
+                    options={{ responsive: true }}
                 />
             </div>
-            <div className="text-center">
-                <p className="text-lg font-semibold">
-                    에니어그램 유형: {results.enneagramType} ({results.type} 유형)
-                </p>
-                <p>날개 유형: {results.wingType}</p>
-                <p>통합 방향: {results.integration} → 성장</p>
-                <p>분열 방향: {results.disintegration} → 스트레스</p>
+
+            {/* 점수 테이블 - (필요시 순서를 변경하여 출력 가능) */}
+            <table className="w-full border-collapse border border-gray-300 mb-6">
+                <thead>
+                    <tr className="bg-gray-100">
+                        <th className="border p-2">카테고리</th>
+                        <th className="border p-2">점수</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {order.map((key) => (
+                        <tr
+                            key={key}
+                            className="text-center"
+                        >
+                            <td className="border p-2">{labelMapping[key]}</td>
+                            <td className="border p-2">{results.categoryScores[key]}</td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+
+            {/* 버튼 섹션 */}
+            <div className="mt-6 flex justify-between">
+                <button
+                    onClick={() => window.print()}
+                    className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
+                >
+                    인쇄하기
+                </button>
+                <button
+                    onClick={() => router.push(`/dashboard/patients/${patientId}`)}
+                    className="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600"
+                >
+                    뒤로 가기
+                </button>
             </div>
-            <button
-                onClick={() => router.push(`/dashboard/patients/${patientId}`)}
-                className="mt-6 bg-gray-500 text-white font-bold py-2 px-6 rounded-lg block mx-auto"
-            >
-                뒤로 가기
-            </button>
         </div>
     );
 }
