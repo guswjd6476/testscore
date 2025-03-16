@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from './context/AuthContext';
 import { useRouter } from 'next/navigation';
 
@@ -11,6 +11,16 @@ export default function LoginPage() {
     const { session, login, logout } = useAuth();
     const router = useRouter();
 
+    useEffect(() => {
+        if (session) {
+            router.replace('/dashboard');
+        }
+    }, [session, router]);
+
+    if (session === undefined) {
+        return <div className="flex justify-center items-center h-screen">로딩 중...</div>;
+    }
+
     const handleLogin = async () => {
         setLoading(true);
         await login(email, password);
@@ -20,7 +30,6 @@ export default function LoginPage() {
     return (
         <div className="flex flex-col items-center justify-center h-screen">
             {session ? (
-                // 로그인 상태일 때: 대시보드 이동 + 로그아웃 버튼 표시
                 <>
                     <h1 className="text-2xl font-bold mb-4">환영합니다!</h1>
                     <button
@@ -34,7 +43,6 @@ export default function LoginPage() {
                     </button>
                 </>
             ) : (
-                // 로그아웃 상태일 때: 로그인 폼 표시
                 <>
                     <h1 className="text-2xl font-bold mb-4">상담사 로그인</h1>
                     <input
