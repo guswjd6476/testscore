@@ -77,6 +77,7 @@ export default function ResultsPage() {
     if (loading) return <p>로딩 중...</p>;
     if (!results) return <p>결과를 불러오는 데 실패했습니다.</p>;
 
+    console.log(results, '???');
     const chartData = {
         labels: Object.keys(results.scores),
         datasets: [
@@ -94,7 +95,10 @@ export default function ResultsPage() {
         <div className="max-w-4xl mx-auto p-6 bg-white shadow-md rounded-lg">
             <h2 className="text-3xl font-bold text-center mb-6">검사 결과</h2>
             <div className="mb-6">
-                <Bar data={chartData} options={{ responsive: true, plugins: { legend: { display: false } } }} />
+                <Bar
+                    data={chartData}
+                    options={{ responsive: true, plugins: { legend: { display: false } } }}
+                />
             </div>
             <div className="text-center">
                 <p className="text-lg font-semibold">
