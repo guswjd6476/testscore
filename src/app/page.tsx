@@ -38,7 +38,10 @@ export default function LoginPage() {
                     >
                         대시보드로 이동
                     </button>
-                    <button className="bg-red-500 text-white px-4 py-2 rounded-md w-64" onClick={logout}>
+                    <button
+                        className="bg-red-500 text-white px-4 py-2 rounded-md w-64"
+                        onClick={logout}
+                    >
                         로그아웃
                     </button>
                 </>
