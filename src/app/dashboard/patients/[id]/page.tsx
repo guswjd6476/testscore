@@ -72,6 +72,12 @@ export default function PatientPage() {
                         </button>
                     </li>
                 )}
+                <li
+                    className="cursor-pointer text-blue-600"
+                    onClick={() => patientId && router.push(`/dashboard/patients/${patientId}/core-emotion-test`)}
+                >
+                    핵심감정 검사
+                </li>
                 <li className="cursor-pointer text-gray-500">회복탄력성 검사 (추가 예정)</li>
             </ul>
 
