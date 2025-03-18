@@ -15,10 +15,9 @@ export default function Dashboard() {
         phone: '',
     });
     const [loading, setLoading] = useState(false);
-    const [showForm, setShowForm] = useState(false); // 추가 폼 보이게 하는 상태
+    const [showForm, setShowForm] = useState(false);
     const router = useRouter();
 
-    // 상담 대상자 목록 불러오기
     useEffect(() => {
         fetchPatients();
     }, []);
@@ -32,13 +31,11 @@ export default function Dashboard() {
         }
     };
 
-    // 입력 값 변경 핸들러
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setNewPatient((prev) => ({ ...prev, [name]: value }));
     };
 
-    // 상담 대상자 추가
     const addPatient = async () => {
         const { name, birth_date, email, phone } = newPatient;
 
@@ -55,17 +52,16 @@ export default function Dashboard() {
             console.error(error);
             alert('추가 중 오류가 발생했습니다.');
         } else {
-            setPatients((prev) => [...prev, ...data]); // 목록 업데이트
-            setNewPatient({ name: '', birth_date: '', email: '', phone: '' }); // 입력값 초기화
-            setShowForm(false); // 폼 닫기
+            setPatients((prev) => [...prev, ...data]);
+            setNewPatient({ name: '', birth_date: '', email: '', phone: '' });
+            setShowForm(false);
         }
     };
 
     return (
-        <div className="p-6 max-w-3xl mx-auto">
+        <div className="p-6 max-w-5xl mx-auto">
             <h2 className="text-3xl font-bold text-gray-800 mb-6">상담 대상자 목록</h2>
 
-            {/* 상담 대상자 추가 버튼 */}
             {!showForm ? (
                 <button
                     onClick={() => setShowForm(true)}
@@ -75,22 +71,21 @@ export default function Dashboard() {
                 </button>
             ) : (
                 <>
-                    {/* 상담 대상자 추가 입력 필드 */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                         <input
                             type="text"
                             name="name"
                             value={newPatient.name}
                             onChange={handleChange}
                             placeholder="이름"
-                            className="border p-3 rounded-md w-full text-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                            className="border p-3 rounded-md text-lg focus:ring-2 focus:ring-blue-400"
                         />
                         <input
                             type="date"
                             name="birth_date"
                             value={newPatient.birth_date}
                             onChange={handleChange}
-                            className="border p-3 rounded-md w-full text-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                            className="border p-3 rounded-md text-lg focus:ring-2 focus:ring-blue-400"
                         />
                         <input
                             type="email"
@@ -98,7 +93,7 @@ export default function Dashboard() {
                             value={newPatient.email}
                             onChange={handleChange}
                             placeholder="이메일"
-                            className="border p-3 rounded-md w-full text-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                            className="border p-3 rounded-md text-lg focus:ring-2 focus:ring-blue-400"
                         />
                         <input
                             type="tel"
@@ -106,7 +101,7 @@ export default function Dashboard() {
                             value={newPatient.phone}
                             onChange={handleChange}
                             placeholder="전화번호"
-                            className="border p-3 rounded-md w-full text-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                            className="border p-3 rounded-md text-lg focus:ring-2 focus:ring-blue-400"
                         />
                     </div>
 
@@ -120,18 +115,39 @@ export default function Dashboard() {
                 </>
             )}
 
-            {/* 상담 대상자 목록 */}
-            <ul className="space-y-4">
-                {patients.map((patient) => (
-                    <li
-                        key={patient.id}
-                        className="cursor-pointer text-blue-600 hover:underline text-lg"
-                        onClick={() => router.push(`/dashboard/patients/${patient.id}`)}
-                    >
-                        {patient.name}
-                    </li>
-                ))}
-            </ul>
+            {/* 상담 대상자 목록 테이블 */}
+            <div className="overflow-x-auto">
+                <table className="min-w-full bg-white shadow-md rounded-lg overflow-hidden">
+                    <thead className="bg-gray-100">
+                        <tr className="text-left text-gray-600">
+                            <th className="py-3 px-4">이름</th>
+                            <th className="py-3 px-4 hidden md:table-cell">생년월일</th>
+                            <th className="py-3 px-4 hidden md:table-cell">이메일</th>
+                            <th className="py-3 px-4 hidden md:table-cell">전화번호</th>
+                            <th className="py-3 px-4">관리</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {patients.map((patient) => (
+                            <tr
+                                key={patient.id}
+                                className="border-t hover:bg-gray-50 cursor-pointer"
+                                onClick={() => router.push(`/dashboard/patients/${patient.id}`)}
+                            >
+                                <td className="py-3 px-4">{patient.name}</td>
+                                <td className="py-3 px-4 hidden md:table-cell">{patient.birth_date}</td>
+                                <td className="py-3 px-4 hidden md:table-cell">{patient.email}</td>
+                                <td className="py-3 px-4 hidden md:table-cell">{patient.phone}</td>
+                                <td className="py-3 px-4">
+                                    <button className="bg-blue-500 text-white px-3 py-1 rounded-md text-sm hover:bg-blue-600">
+                                        상세 보기
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
         </div>
     );
 }

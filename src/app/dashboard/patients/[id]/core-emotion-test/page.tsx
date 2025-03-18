@@ -1,56 +1,117 @@
-'use client'; // Add this line to mark the file as a client component
+'use client';
 
 import React, { useState } from 'react';
+import { supabase } from '@/app/lib/supabase'; // ✅ Supabase 가져오기
 import { emotions } from '@/app/lib/question';
-
-type Answer = {
-    [key: string]: string[];
-};
+import { useParams } from 'next/navigation';
 
 const CoreEmotionTest = () => {
-    const [answers, setAnswers] = useState<Answer>({});
+    const params = useParams();
+    const patientId = params?.id as string;
+    const [answers, setAnswers] = useState<Record<number, string[]>>({});
+    const [loading, setLoading] = useState(false);
+    const [message, setMessage] = useState<string | null>(null);
 
-    const handleCheckboxChange = (emotion: string, option: string) => {
+    const handleCheckboxChange = (emotionId: number, category: string, item: string) => {
         setAnswers((prev) => {
             const updatedAnswers = { ...prev };
-            if (!updatedAnswers[emotion]) {
-                updatedAnswers[emotion] = [];
+
+            if (!updatedAnswers[emotionId]) {
+                updatedAnswers[emotionId] = [];
             }
-            if (updatedAnswers[emotion].includes(option)) {
-                updatedAnswers[emotion] = updatedAnswers[emotion].filter((item) => item !== option);
-            } else {
-                updatedAnswers[emotion].push(option);
-            }
+
+            const key = `${category}: ${item}`;
+
+            // ✅ 제한 없이 다 선택 가능하도록 개선
+            updatedAnswers[emotionId] = [...new Set([...updatedAnswers[emotionId], key])];
+
             return updatedAnswers;
         });
     };
 
-    const handleSubmit = () => {
-        console.log('Submitted Answers:', answers);
+    const handleSubmit = async () => {
+        setLoading(true);
+        setMessage(null);
+
+        if (!patientId) {
+            setMessage('❌ 오류: 환자 ID가 없습니다.');
+            setLoading(false);
+            return;
+        }
+
+        try {
+            const { data, error } = await supabase.from('core_emotion_tests').insert([
+                {
+                    patient_id: String(patientId),
+                    answers: answers,
+                    created_at: new Date().toISOString(),
+                },
+            ]);
+
+            if (error) throw error;
+            console.log('📌 Supabase 응답:', { data, error });
+            setMessage('✅ 검사 결과가 성공적으로 저장되었습니다!');
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : '알 수 없는 오류 발생';
+            console.error('❌ 저장 오류:', errorMessage);
+            setMessage(`❌ 저장 중 오류가 발생했습니다. (${errorMessage})`);
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
         <div className="max-w-4xl mx-auto p-6">
-            <h1 className="text-2xl font-bold mb-4">핵심 감정 검사</h1>
+            <h1 className="text-2xl font-bold mb-4 text-center">핵심 감정 검사</h1>
             {emotions.map((emotion) => (
-                <div key={emotion.id} className="mb-4 border-b pb-2">
-                    <h2 className="text-lg font-semibold">{emotion.id}</h2>
-                    <div className="flex flex-wrap gap-2 mt-2">
-                        {['대인관계', '가족관계', '일과공부', '나의감정'].map((category) => (
-                            <label key={category} className="flex items-center space-x-2">
-                                <input
-                                    type="checkbox"
-                                    onChange={() => handleCheckboxChange(emotion.id.toString(), category)}
-                                />
-                                <span>{category}</span>
-                            </label>
-                        ))}
-                    </div>
+                <div key={emotion.id} className="mb-6 border p-4 rounded-md shadow">
+                    <h2 className="text-lg font-semibold mb-3">감정 유형 {emotion.id}</h2>
+                    <table className="w-full border-collapse border border-gray-300 text-left">
+                        <thead>
+                            <tr className="bg-gray-100">
+                                <th className="border border-gray-300 px-4 py-2">카테고리</th>
+                                <th className="border border-gray-300 px-4 py-2">항목</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {emotion.categories.map((category) => (
+                                <tr key={category.category}>
+                                    <td className="border border-gray-300 px-4 py-2 font-semibold align-top">
+                                        {category.category}
+                                    </td>
+                                    <td className="border border-gray-300 px-4 py-2">
+                                        {category.items.map((item) => (
+                                            <label key={item} className="block mb-2">
+                                                <input
+                                                    type="checkbox"
+                                                    className="mr-2"
+                                                    checked={
+                                                        answers[emotion.id]?.includes(
+                                                            `${category.category}: ${item}`
+                                                        ) || false
+                                                    }
+                                                    onChange={() =>
+                                                        handleCheckboxChange(emotion.id, category.category, item)
+                                                    }
+                                                />
+                                                {item}
+                                            </label>
+                                        ))}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
             ))}
-            <button onClick={handleSubmit} className="mt-6 bg-blue-500 text-white px-4 py-2 rounded-md">
-                제출하기
+            <button
+                onClick={handleSubmit}
+                className="mt-6 bg-blue-500 text-white px-4 py-2 rounded-md block mx-auto"
+                disabled={loading}
+            >
+                {loading ? '저장 중...' : '제출하기'}
             </button>
+            {message && <p className="text-center mt-4">{message}</p>}
         </div>
     );
 };

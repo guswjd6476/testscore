@@ -6,18 +6,19 @@ import { supabase } from '@/app/lib/supabase';
 
 export default function PatientPage() {
     const router = useRouter();
-    const params = useParams(); // ✅ useParams()는 이제 Promise이므로 안전하게 처리해야 함
+    const params = useParams();
     const [patientId, setPatientId] = useState<string | null>(null);
     const [isCompleted, setIsCompleted] = useState<boolean | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // ✅ useEffect 내부에서 params를 안전하게 처리
+    // ✅ useEffect에서 patientId 설정 및 확인
     useEffect(() => {
-        if (!params) return; // params가 없으면 실행 X
-        const id = params.id as string;
-        if (!id) return; // ID가 없으면 실행 X
+        console.log('params:', params); // params 값 확인
+        if (!params || !params.id) return;
 
+        const id = params.id as string;
+        console.log('Patient ID:', id); // patientId 값 확인
         setPatientId(id);
 
         const fetchTestStatus = async () => {
@@ -72,16 +73,22 @@ export default function PatientPage() {
                         </button>
                     </li>
                 )}
-                <li
-                    className="cursor-pointer text-blue-600"
-                    onClick={() => patientId && router.push(`/dashboard/patients/${patientId}/core-emotion-test`)}
-                >
-                    핵심감정 검사
+                {/* 핵심 감정 검사 버튼 수정 */}
+                <li>
+                    <button
+                        onClick={() => {
+                            console.log('Navigating to:', `/dashboard/patients/${patientId}/core-emotion-test`);
+                            if (patientId) router.push(`/dashboard/patients/${patientId}/core-emotion-test`);
+                        }}
+                        className="mt-2 bg-blue-500 text-white py-1 px-4 rounded cursor-pointer"
+                    >
+                        핵심감정 검사
+                    </button>
                 </li>
                 <li className="cursor-pointer text-gray-500">회복탄력성 검사 (추가 예정)</li>
             </ul>
 
-            {/* 목록보기 버튼 추가 */}
+            {/* 목록보기 버튼 */}
             <div className="mt-4">
                 <button
                     onClick={() => router.push('/dashboard')}
